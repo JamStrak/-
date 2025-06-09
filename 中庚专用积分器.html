@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手机版记分器</title>
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f4f7f6;
+            --card-bg-color: #ffffff;
+            --text-color: #333;
+            --border-color: #dee2e6;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --winner-bg: #fffbeb;
+            --winner-border: #ffc107;
+            --crown-color: #ffc107;
+        }
+
+        /* --- Global & Mobile First Styles --- */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background-color: var(--card-bg-color);
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: var(--primary-color);
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+        
+        h2 {
+            margin-top: 30px;
+            border-bottom: 2px solid var(--border-color);
+            padding-bottom: 10px;
+            font-size: 1.1em;
+            color: var(--secondary-color);
+            text-align: center;
+        }
+
+        .section { margin-bottom: 20px; }
+
+        .controls-group {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--primary-color);
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        button:hover { background-color: #0056b3; }
+        button:active { transform: scale(0.98); }
+        button.secondary { background-color: var(--secondary-color); }
+        button.secondary:hover { background-color: #5a6268; }
+        button.danger { background-color: var(--danger-color); }
+        button.danger:hover { background-color: #c82333; }
+        button.success { 
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto 0;
+            display: block;
+            font-size: 18px; 
+            padding: 12px 25px; 
+            background-color: var(--success-color);
+        }
+        button.success:hover { background-color: #218838; }
+        button:disabled { background-color: #cccccc; cursor: not-allowed; }
+
+        /* Players container is a vertical column on mobile by default */
+        #players-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .player-card {
+            background-color: #fff;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            padding: 15px;
+            transition: all 0.3s ease;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            grid-template-areas:
+                "header score"
+                "input input";
+            align-items: center;
+            gap: 10px;
+        }
+
+        .player-card.winner {
+            background-color: var(--winner-bg);
+            border-color: var(--winner-border);
+            transform: scale(1.02);
+            box-shadow: 0 4px 15px rgba(255, 193, 7, 0.4);
+        }
+
+        .player-header {
+            grid-area: header;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .crown-icon {
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.3;
+            transition: all 0.3s ease;
+            padding: 5px; /* Increase touch area */
+        }
+        .player-card.winner .crown-icon {
+            opacity: 1;
+            color: var(--crown-color);
+            text-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+
+        .player-card input.player-name-input {
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            width: 100%;
+            padding: 5px 0;
+            background: transparent;
+        }
+        .player-card input.player-name-input:focus { outline: none; border-bottom: 2px solid var(--primary-color); }
+        
+        .player-score {
+            grid-area: score;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-align: right;
+        }
+
+        .score-adjustment-input {
+            grid-area: input;
+            width: 100%;
+            padding: 8px 10px;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            font-size: 16px;
+            text-align: center;
+            box-sizing: border-box; /* Important */
+        }
+        .player-card.winner .score-adjustment-input {
+            display: none;
+        }
+        
+        /* --- Desktop Styles (for screens wider than 768px) --- */
+        @media (min-width: 768px) {
+            body { padding: 20px; }
+            .container { padding: 25px; }
+            h1 { font-size: 2.2em; }
+            h2 { font-size: 1.2em; }
+
+            /* Switch to grid layout for players on desktop */
+            #players-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+                gap: 20px;
+            }
+
+            .player-card {
+                display: flex;
+                flex-direction: column;
+                text-align: center;
+                gap: 10px;
+            }
+             .player-header { justify-content: center; }
+             .player-score { text-align: center; font-size: 32px; margin: 5px 0; }
+        }
+
+        /* --- Modal Styles (same for both mobile and desktop) --- */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background-color: #fefefe; margin: auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 700px; border-radius: 8px; position: relative; }
+        .close-btn { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-btn:hover, .close-btn:focus { color: black; }
+        #stats-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        #stats-table th, #stats-table td { border: 1px solid var(--border-color); padding: 12px; text-align: center; }
+        #stats-table th { background-color: var(--primary-color); color: white; }
+        #stats-table tr:nth-child(even) { background-color: #f2f2f2; }
+        #stats-table tr:first-child td { font-weight: bold; color: var(--success-color); }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>手机版记分器</h1>
+
+        <!-- Core Gameplay Area -->
+        <div class="section">
+            <div id="players-container"></div>
+            <button id="settle-round-btn" class="success">结算本局</button>
+        </div>
+
+        <!-- Settings and Stats Area -->
+        <div class="section">
+            <h2>游戏控制</h2>
+            <div class="controls-group">
+                <button id="add-player-btn" class="secondary">增加玩家</button>
+                <span id="player-count">4</span> <span>名玩家</span>
+                <button id="remove-player-btn" class="secondary">减少玩家</button>
+            </div>
+            <div class="controls-group" style="margin-top: 20px;">
+                <button id="show-stats-btn">数据统计</button>
+                <button id="reset-btn" class="danger">清零数据</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Modal -->
+    <div id="stats-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn">&times;</span>
+            <h2>数据统计</h2>
+            <p>总局数: <span id="total-rounds-stat">0</span></p>
+            <table id="stats-table">
+                <thead>
+                    <tr><th>排名</th><th>玩家</th><th>总积分</th><th>胜率</th><th>胜利局数</th></tr>
+                </thead>
+                <tbody id="stats-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+    // The JavaScript logic remains the same as the previous version.
+    // It's robust enough to handle the new layout without changes.
+    document.addEventListener('DOMContentLoaded', () => {
+        // --- DOM Elements ---
+        const playersContainer = document.getElementById('players-container');
+        const addPlayerBtn = document.getElementById('add-player-btn');
+        const removePlayerBtn = document.getElementById('remove-player-btn');
+        const playerCountSpan = document.getElementById('player-count');
+        const settleRoundBtn = document.getElementById('settle-round-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const showStatsBtn = document.getElementById('show-stats-btn');
+        const statsModal = document.getElementById('stats-modal');
+        const closeModalBtn = statsModal.querySelector('.close-btn');
+        const statsTbody = document.getElementById('stats-tbody');
+        const totalRoundsStat = document.getElementById('total-rounds-stat');
+
+        // --- State ---
+        let players = [];
+        let totalRounds = 0;
+        let winnerId = null;
+
+        // --- Core Functions ---
+        function initialize() {
+            for (let i = 0; i < 4; i++) {
+                createPlayer();
+            }
+            render();
+        }
+
+        function createPlayer() {
+            if (players.length >= 8) return;
+            const newPlayer = {
+                id: Date.now() + Math.random(),
+                name: `玩家 ${players.length + 1}`,
+                score: 0,
+                wins: 0,
+            };
+            players.push(newPlayer);
+        }
+        
+        function updatePlayerCountButtons() {
+            removePlayerBtn.disabled = players.length <= 2;
+            addPlayerBtn.disabled = players.length >= 8;
+        }
+
+        function render() {
+            playersContainer.innerHTML = '';
+            players.forEach(player => {
+                const isWinner = player.id === winnerId;
+                const card = document.createElement('div');
+                card.className = `player-card ${isWinner ? 'winner' : ''}`;
+                card.dataset.id = player.id;
+
+                card.innerHTML = `
+                    <div class="player-header">
+                        <span class="crown-icon" title="点击设为胜利者">👑</span>
+                        <input type="text" class="player-name-input" value="${player.name}" title="点击修改名称">
+                    </div>
+                    <div class="player-score">${player.score}</div>
+                    <input type="number" class="score-adjustment-input" placeholder="输入扣分数" min="0">
+                `;
+                playersContainer.appendChild(card);
+            });
+            
+            playerCountSpan.textContent = players.length;
+            updatePlayerCountButtons();
+        }
+
+        function renderStats() {
+            const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
+            totalRoundsStat.textContent = totalRounds;
+            statsTbody.innerHTML = '';
+            if (players.length === 0) return;
+
+            sortedPlayers.forEach((player, index) => {
+                const winRate = totalRounds > 0 ? ((player.wins / totalRounds) * 100).toFixed(1) : 0;
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${player.name}</td>
+                    <td>${player.score}</td>
+                    <td>${winRate}%</td>
+                    <td>${player.wins}</td>
+                `;
+                statsTbody.appendChild(row);
+            });
+        }
+
+        // --- Event Handlers ---
+        addPlayerBtn.addEventListener('click', () => {
+            createPlayer();
+            render();
+        });
+
+        removePlayerBtn.addEventListener('click', () => {
+            if (players.length > 2) {
+                const removedPlayer = players.pop();
+                if (winnerId === removedPlayer.id) {
+                    winnerId = null; // Clear winner if they are removed
+                }
+                render();
+            }
+        });
+
+        playersContainer.addEventListener('change', (e) => {
+            if (e.target.classList.contains('player-name-input')) {
+                const card = e.target.closest('.player-card');
+                const playerId = parseFloat(card.dataset.id);
+                const player = players.find(p => p.id === playerId);
+                if (player) {
+                    player.name = e.target.value;
+                }
+            }
+        });
+
+        playersContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('crown-icon')) {
+                const card = e.target.closest('.player-card');
+                const clickedPlayerId = parseFloat(card.dataset.id);
+
+                if (winnerId === clickedPlayerId) {
+                    winnerId = null; // Deselect if clicking the same winner
+                } else {
+                    winnerId = clickedPlayerId;
+                }
+                render();
+            }
+        });
+
+        settleRoundBtn.addEventListener('click', () => {
+            if (winnerId === null) {
+                alert('请先点击 👑 皇冠图标选择一位胜利者！');
+                return;
+            }
+
+            const winner = players.find(p => p.id === winnerId);
+            let totalGains = 0;
+            let changesMade = false;
+
+            document.querySelectorAll('.player-card').forEach(card => {
+                const currentPlayerId = parseFloat(card.dataset.id);
+                if (currentPlayerId !== winnerId) {
+                    const input = card.querySelector('.score-adjustment-input');
+                    const pointsLost = parseInt(input.value, 10) || 0;
+
+                    if (pointsLost > 0) {
+                        const loser = players.find(p => p.id === currentPlayerId);
+                        if (loser) {
+                            loser.score -= pointsLost;
+                            totalGains += pointsLost;
+                            changesMade = true;
+                        }
+                    }
+                }
+            });
+            
+            if (!changesMade) {
+                alert('请输入至少一个输家的扣分。');
+                return;
+            }
+
+            if (winner) {
+                winner.score += totalGains;
+                winner.wins += 1;
+            }
+            
+            totalRounds++;
+            winnerId = null; 
+            
+            render();
+        });
+
+        resetBtn.addEventListener('click', () => {
+            if (confirm('确定要清零所有玩家的积分和局数吗？')) {
+                if (confirm('此操作不可撤销，请再次确认！')) {
+                    players.forEach(p => {
+                        p.score = 0;
+                        p.wins = 0;
+                    });
+                    totalRounds = 0;
+                    winnerId = null;
+                    render();
+                    alert('所有数据已成功清零！');
+                }
+            }
+        });
+
+        showStatsBtn.addEventListener('click', () => {
+            renderStats();
+            statsModal.style.display = 'flex';
+        });
+        
+        closeModalBtn.addEventListener('click', () => {
+            statsModal.style.display = 'none';
+        });
+
+        window.addEventListener('click', (e) => {
+            if (e.target == statsModal) {
+                statsModal.style.display = 'none';
+            }
+        });
+
+        // --- Initial Load ---
+        initialize();
+    });
+    </script>
+</body>
+</html>
